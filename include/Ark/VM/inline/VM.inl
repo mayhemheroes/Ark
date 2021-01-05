@@ -332,11 +332,10 @@ inline void VM::call(int16_t argc_)
     // checking function arity
     if (m_state->m_options & FeatureFunctionArityCheck)
     {
-        std::size_t index = 0,
-                    needed_argc = 0;
+        std::size_t index = 1, needed_argc = 0;
 
         // every argument is a MUT declaration in the bytecode
-        while (m_state->m_instructions[m_pp * m_state->m_page_size + index] == Instruction::MUT)
+        while (m_state->m_instructions[m_gip + index] == Instruction::MUT)
         {
             needed_argc += 1;
             index += 3;  // jump the argument of MUT (integer on 2 bits, big endian)

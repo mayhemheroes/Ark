@@ -311,7 +311,7 @@ namespace Ark
                 {
                     uint16_t addr = readNumber(i);
                     i++;
-                    m_constants.emplace_back(addr);
+                    m_constants.emplace_back(static_cast<PageAddr_t>(addr));
                     i++;  // skip NOP
                 }
                 else
@@ -345,14 +345,14 @@ namespace Ark
         // generate aligned instructions' list
         const std::size_t reserve = m_page_size * (pages.size() - 1) + pages.back().size();
         if (m_debug_level >= 1)
-            Ark::logger.info("Reserving space for", reserve, "instructions");
+            Ark::logger.info("Reserving space for", reserve, "instructions ; page size:", m_page_size);
 
         m_instructions.reserve(reserve);
         std::size_t k = 0;
         for (const bytecode_t& page: pages)
         {
-            for (std::size_t i=0, end=page.size(); i < end; ++i, ++k)
-                m_instructions[k] = page[i];
+            for (std::size_t j=0, end=page.size(); j < end; ++j, ++k)
+                m_instructions[k] = page[j];
 
             // add padding for every page, but not the last one because it's useless
             while (k / reserve != pages.size() - 1 && k % m_page_size != 0)

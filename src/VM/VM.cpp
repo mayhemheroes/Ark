@@ -201,7 +201,7 @@ namespace Ark
         using namespace Ark::internal;
         m_until_frame_count = untilFrameCount;
 
-        //try {
+        try {
             m_running = true;
             while (m_running && m_fc > m_until_frame_count)
             {
@@ -381,6 +381,7 @@ namespace Ark
                             } while(gip->valueType() != ValueType::InstPtr);
 
                             m_gip = gip->pageAddr();
+                            m_pp = m_gip / m_state->m_page_size;
 
                             returnFromFuncCall();
                             push(std::move(gip_or_val));
@@ -972,7 +973,7 @@ namespace Ark
                 // move forward
                 ++m_gip;
             }
-        /*} catch (const std::exception& e) {
+        } catch (const std::exception& e) {
             std::printf("%s\n", e.what());
             backtrace();
             return 1;
@@ -980,7 +981,7 @@ namespace Ark
             std::printf("Unknown error\n");
             backtrace();
             return 1;
-        }*/
+        }
         return 0;
     }
 
@@ -1032,8 +1033,11 @@ namespace Ark
                     else  // should never happen
                         std::cerr << "In function `" << termcolor::yellow << "???" << termcolor::reset << "'\n";
 
-                    while (pop()->valueType() != ValueType::InstPtr);
-                    curr_pp = pop()->pageAddr();
+                    Value* gip;
+                    do {
+                        gip = pop();
+                    } while (gip->valueType() != ValueType::InstPtr);
+                    curr_pp = gip->pageAddr() / m_state->m_page_size;
                     --it;
                 }
                 else
@@ -1066,8 +1070,6 @@ namespace Ark
                     else if (tmp->valueType() == ValueType::User)
                         tmp->usertype_ref().del();
                 }
-                // pop the PP as well
-                pop();
             }
         }
     }
