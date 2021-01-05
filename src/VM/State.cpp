@@ -344,8 +344,8 @@ namespace Ark
 
         // generate aligned instructions' list
         const std::size_t reserve = m_page_size * (pages.size() - 1) + pages.back().size();
-        if (m_debug_level > 1)
-            Ark::logger.info("Reserving", reserve, "instructions");
+        if (m_debug_level >= 1)
+            Ark::logger.info("Reserving space for", reserve, "instructions");
 
         m_instructions.reserve(reserve);
         std::size_t k = 0;

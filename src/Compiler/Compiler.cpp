@@ -73,25 +73,25 @@ namespace Ark
             m_bytecode.push_back(b);
         }
 
-        if (m_debug >= 1)
+        if (m_debug >= 2)
             Ark::logger.info("Timestamp: ", timestamp);
 
         const std::size_t header_size = m_bytecode.size();
 
-        if (m_debug >= 1)
+        if (m_debug >= 2)
             Ark::logger.info("Adding symbols table header");
 
         // symbols table
         m_bytecode.push_back(Instruction::SYM_TABLE_START);
 
-        if (m_debug >= 1)
+        if (m_debug >= 2)
             Ark::logger.info("Compiling");
         // gather symbols, values, and start to create code segments
         m_code_pages.emplace_back();  // create empty page
         _compile(m_optimizer.ast(), 0);
         checkForUndefinedSymbol();
 
-        if (m_debug >= 1)
+        if (m_debug >= 2)
             Ark::logger.info("Adding symbols table");
         // push size
         pushNumber(static_cast<uint16_t>(m_symbols.size()));
@@ -105,7 +105,7 @@ namespace Ark
             m_bytecode.push_back(Instruction::NOP);
         }
 
-        if (m_debug >= 1)
+        if (m_debug >= 2)
             Ark::logger.info("Adding constants table");
 
         // values table
@@ -141,7 +141,7 @@ namespace Ark
             m_bytecode.push_back(Instruction::NOP);
         }
 
-        if (m_debug >= 1)
+        if (m_debug >= 2)
             Ark::logger.info("Adding code segments");
 
         // start code segments
