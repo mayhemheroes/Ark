@@ -208,6 +208,20 @@ namespace Ark
                 // get current instruction
                 uint8_t inst = m_state->m_instructions[m_gip];
 
+                // DEBUG
+                #if 0
+                std::cout << "DEBUG GIP(" << m_gip << ") PP(" << m_pp << ") SP(" << m_sp << ")" << std::endl;
+                if (m_sp > 0)
+                {
+                    Value* top = &m_stack[m_sp - 1];
+                    std::cout << "    SP(" << (m_sp - 1) << ") = (" << types_to_str[static_cast<int>(top->valueType())] << ") ";
+                    if (top->valueType() == ValueType::Reference)
+                        std::cout << "-> (" << types_to_str[static_cast<int>(top->reference()->valueType())] << ") " << (*top->reference()) << std::endl;
+                    else
+                        std::cout << (*top) << std::endl;
+                }
+                #endif
+
                 // and it's time to du-du-du-du-duel!
                 switch (inst)
                 {
