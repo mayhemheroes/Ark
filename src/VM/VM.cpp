@@ -1,10 +1,10 @@
 #include <Ark/VM/VM.hpp>
 
 // read a number from the bytecode
-#define readNumber(var) {                                                \
-    var = (static_cast<uint16_t>(m_state->m_pages[m_pp][m_ip]) << 8) +   \
-           static_cast<uint16_t>(m_state->m_pages[m_pp][m_ip + 1]);      \
-    ++m_ip;                                                              \
+#define readNumber(var) {                                                  \
+    var = (static_cast<uint16_t>(m_state->m_instructions[m_gip]) << 8) +   \
+           static_cast<uint16_t>(m_state->m_instructions[m_gip + 1]);      \
+    ++m_gip;                                                               \
     }
 // register a variable in the current scope
 #define registerVariable(id, value) ((*m_locals.back()).push_back(id, value))
@@ -23,7 +23,7 @@ struct mapping {
 namespace Ark
 {
     VM::VM(State* state) noexcept :
-        m_state(state), m_exitCode(0), m_ip(0), m_pp(0), m_sp(0), m_fc(0),
+        m_state(state), m_exitCode(0), m_gip(0), m_pp(0), m_sp(0), m_fc(0),
         m_running(false), m_last_sym_loaded(0),
         m_until_frame_count(0), m_user_pointer(nullptr)
     {
@@ -190,7 +190,7 @@ namespace Ark
         safeRun();
 
         // reset VM after each run
-        m_ip = 0;
+        m_gip = 0;
         m_pp = 0;
 
         return m_exitCode;
@@ -206,7 +206,7 @@ namespace Ark
             while (m_running && m_fc > m_until_frame_count)
             {
                 // get current instruction
-                uint8_t inst = m_state->m_pages[m_pp][m_ip];
+                uint8_t inst = m_state->m_instructions[m_gip];
 
                 // and it's time to du-du-du-du-duel!
                 switch (inst)
@@ -218,7 +218,7 @@ namespace Ark
                             Job: Load a symbol from its id onto the stack
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         readNumber(m_last_sym_loaded);
 
                         if (Value* var = findNearestVariable(m_last_sym_loaded); var != nullptr)
@@ -239,7 +239,7 @@ namespace Ark
                                     and push a Closure with the page address + environment instead of the constant
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         if (m_saved_scope && m_state->m_constants[id].valueType() == ValueType::PageAddr)
@@ -265,11 +265,11 @@ namespace Ark
                                     Remove the value from the stack no matter what it is
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         if (*popAndResolveAsPtr() == Builtins::trueSym)
-                            m_ip = static_cast<int16_t>(id) - 1;  // because we are doing a ++m_ip right after this
+                            m_gip = m_pp * m_state->m_page_size + static_cast<int16_t>(id) - 1;  // because we are doing a ++m_gip right after this
                         break;
                     }
 
@@ -282,7 +282,7 @@ namespace Ark
                                     couldn't find a scope where the variable exists
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         if (Value* var = findNearestVariable(id); var != nullptr)
@@ -309,7 +309,7 @@ namespace Ark
                                     following the given symbol id (cf symbols table)
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         // check if we are redefining a variable
@@ -332,11 +332,11 @@ namespace Ark
                                     the value from the stack no matter what it is
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         if (*popAndResolveAsPtr() == Builtins::falseSym)
-                            m_ip = static_cast<int16_t>(id) - 1;  // because we are doing a ++m_ip right after this
+                            m_gip = m_pp * m_state->m_page_size + static_cast<int16_t>(id) - 1;  // because we are doing a ++m_gip right after this
                         break;
                     }
 
@@ -347,10 +347,10 @@ namespace Ark
                             Job: Jump to the provided address
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
-                        m_ip = static_cast<int16_t>(id) - 1;  // because we are doing a ++m_ip right after this
+                        m_gip = m_pp * m_state->m_page_size + static_cast<int16_t>(id) - 1;  // because we are doing a ++m_gip right after this
                         break;
                     }
 
@@ -362,14 +362,12 @@ namespace Ark
                                     the stack to the new stack ; should as well delete the current environment.
                         */
 
-                        Value ip_or_val = *popAndResolveAsPtr();
+                        Value gip_or_val = *popAndResolveAsPtr();
                         // no return value on the stack
-                        if (ip_or_val.valueType() == ValueType::InstPtr)
+                        if (gip_or_val.valueType() == ValueType::InstPtr)
                         {
-                            m_ip = ip_or_val.pageAddr();
-                            // we always push PP then IP, thus the next value
-                            // MUST be the page pointer
-                            m_pp = pop()->pageAddr();
+                            m_gip = gip_or_val.pageAddr();
+                            m_pp = m_gip / m_state->m_page_size;
 
                             returnFromFuncCall();
                             push(Builtins::nil);
@@ -377,16 +375,15 @@ namespace Ark
                         // value on the stack
                         else
                         {
-                            Value* ip;
+                            Value* gip;
                             do {
-                                ip = popAndResolveAsPtr();
-                            } while(ip->valueType() != ValueType::InstPtr);
+                                gip = popAndResolveAsPtr();
+                            } while(gip->valueType() != ValueType::InstPtr);
 
-                            m_ip = ip->pageAddr();
-                            m_pp = pop()->pageAddr();
+                            m_gip = gip->pageAddr();
 
                             returnFromFuncCall();
-                            push(std::move(ip_or_val));
+                            push(std::move(gip_or_val));
                         }
 
                         COZ_PROGRESS_NAMED("ark vm ret");
@@ -410,7 +407,7 @@ namespace Ark
                                 they were created
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         if (!m_saved_scope)
@@ -431,7 +428,7 @@ namespace Ark
                             Job: Push the builtin function object on the stack
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         push(Builtins::builtins[id].second);
@@ -448,7 +445,7 @@ namespace Ark
                                 named following the given symbol id (cf symbols table)
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         Value val = *popAndResolveAsPtr();
@@ -472,7 +469,7 @@ namespace Ark
                             Job: Remove a variable/constant named following the given symbol id (cf symbols table)
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         if (Value* var = findNearestVariable(id); var != nullptr)
@@ -507,7 +504,7 @@ namespace Ark
                                 stored in TS. Pop TS and push the value of field read on the stack
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         Value* var = popAndResolveAsPtr();
@@ -517,7 +514,7 @@ namespace Ark
                         if (Value* field = (*var->closure_ref().scope())[id]; field != nullptr)
                         {
                             // check for CALL instruction
-                            if (m_ip + 1 < m_state->m_pages[m_pp].size() && m_state->m_pages[m_pp][m_ip + 1] == Instruction::CALL)
+                            if (m_state->m_instructions[m_gip + 1] == Instruction::CALL)
                             {
                                 m_locals.push_back(var->closure_ref().scope());
                                 ++m_scope_count_to_delete.back();
@@ -539,7 +536,7 @@ namespace Ark
                                  Raise an error if it couldn't find the module.
                         */
 
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t id; readNumber(id);
 
                         loadPlugin(id);
@@ -554,7 +551,7 @@ namespace Ark
                             Takes at least 0 arguments and push a list on the stack.
                             The content is pushed in reverse order
                         */
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t count; readNumber(count);
 
                         Value l(ValueType::List);
@@ -571,7 +568,7 @@ namespace Ark
 
                     case Instruction::APPEND:
                     {
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t count; readNumber(count);
 
                         Value *list = popAndResolveAsPtr();
@@ -592,7 +589,7 @@ namespace Ark
 
                     case Instruction::CONCAT:
                     {
-                        ++m_ip;
+                        ++m_gip;
                         uint16_t count; readNumber(count);
 
                         Value *list = popAndResolveAsPtr();
@@ -973,7 +970,7 @@ namespace Ark
                 }
 
                 // move forward
-                ++m_ip;
+                ++m_gip;
             }
         /*} catch (const std::exception& e) {
             std::printf("%s\n", e.what());
@@ -1010,7 +1007,7 @@ namespace Ark
     {
         using namespace Ark::internal;
         std::cerr << termcolor::reset
-                  << "At IP: " << (m_ip != -1 ? m_ip : 0)
+                  << "At GIP: " << (m_gip != -1 ? m_gip : 0)
                   << ", PP: " << m_pp
                   << ", SP: " << m_sp
                   << "\n";

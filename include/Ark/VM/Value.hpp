@@ -13,7 +13,7 @@
 #define ark_vm_value
 
 #include <vector>
-#ifndef USE_MPARK
+#ifndef ARK_USE_MPARK
     #include <variant>
     #define variant_t std::variant
     #define variant_get std::get
@@ -89,7 +89,7 @@ namespace Ark::internal
         using Value_t  = variant_t<
             double,             //  8 bytes
             String,             // 16 bytes
-            PageAddr_t,         //  2 bytes
+            PageAddr_t,         //  8 bytes
             ProcType,           //  8 bytes
             Closure,            // 24 bytes
             UserType,           // 24 bytes

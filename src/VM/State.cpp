@@ -13,7 +13,7 @@ namespace Ark
 {
     State::State(uint16_t options, const std::string& libdir) noexcept :
         m_libdir(libdir), m_filename(ARK_NO_NAME_FILE),
-        m_options(options), m_debug_level(0)
+        m_options(options), m_debug_level(0), m_page_size(0)
     {
         // read environment variable to locate ark std lib, *only* if the standard library folder wasn't provided
         // or if it doesn't exist
@@ -321,20 +321,45 @@ namespace Ark
         else
             throwStateError("couldn't find constants table");
 
+        std::vector<bytecode_t> pages;
+
         while (m_bytecode[i] == Instruction::CODE_SEGMENT_START)
         {
             i++;
             uint16_t size = readNumber(i);
             i++;
 
-            m_pages.emplace_back();
-            m_pages.back().reserve(size);
+            if (size > m_page_size)
+                m_page_size = size;
+
+            pages.emplace_back();
+            pages.back().reserve(size);
 
             for (uint16_t j=0; j < size; ++j)
-                m_pages.back().push_back(m_bytecode[i++]);
-            
+                pages.back().push_back(m_bytecode[i++]);
+
             if (i == m_bytecode.size())
                 break;
+        }
+
+        // generate aligned instructions' list
+        const std::size_t reserve = m_page_size * (pages.size() - 1) + pages.back().size();
+        if (m_debug_level > 1)
+            Ark::logger.info("Reserving", reserve, "instructions");
+
+        m_instructions.reserve(reserve);
+        std::size_t k = 0;
+        for (const bytecode_t& page: pages)
+        {
+            for (std::size_t i=0, end=page.size(); i < end; ++i, ++k)
+                m_instructions[k] = page[i];
+
+            // add padding for every page, but not the last one because it's useless
+            while (k / reserve != pages.size() - 1 && k % m_page_size != 0)
+            {
+                m_instructions[k] = Instruction::NOP;
+                ++k;
+            }
         }
     }
 
@@ -342,7 +367,8 @@ namespace Ark
     {
         m_symbols.clear();
         m_constants.clear();
-        m_pages.clear();
+        m_instructions.clear();
+        m_page_size = 0;
         m_binded.clear(); 
     }
 }

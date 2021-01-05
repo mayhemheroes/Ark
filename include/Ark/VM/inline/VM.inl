@@ -19,9 +19,9 @@ internal::Value VM::call(const std::string& name, Args&&... args)
 
     const std::lock_guard<std::mutex> lock(m_mutex);
 
-    // reset ip and pp
-    m_ip = 0;
+    // reset gip and pp
     m_pp = 0;
+    m_gip = 0;
 
     // find id of function
     auto it = std::find(m_state->m_symbols.begin(), m_state->m_symbols.end(), name);
@@ -57,9 +57,9 @@ internal::Value VM::call(const std::string& name, Args&&... args)
     // call it
     call(static_cast<int16_t>(sizeof...(Args)));
     // reset instruction pointer, otherwise the safeRun method will start at ip = -1
-    // without doing m_ip++ as intended (done right after the call() in the loop, but here
+    // without doing m_gip++ as intended (done right after the call() in the loop, but here
     // we start outside this loop)
-    m_ip = 0;
+    m_gip = 0;
 
     // run until the function returns
     safeRun(/* untilFrameCount */ frames_count);
@@ -171,9 +171,9 @@ inline void VM::call(int16_t argc_)
     // handling calls from C++ code
     if (argc_ <= -1)
     {
-        ++m_ip;
-        argc = (static_cast<uint16_t>(m_state->m_pages[m_pp][m_ip]) << 8) + static_cast<uint16_t>(m_state->m_pages[m_pp][m_ip + 1]);
-        ++m_ip;
+        ++m_gip;
+        argc = (static_cast<uint16_t>(m_state->m_instructions[m_gip]) << 8) + static_cast<uint16_t>(m_state->m_instructions[m_gip + 1]);
+        ++m_gip;
     }
     else
         argc = argc_;
@@ -205,51 +205,45 @@ inline void VM::call(int16_t argc_)
 
             // move values around and invert them
             // 
-            // values:     1,  2, 3, _, _
-            // wanted:    pp, ip, 3, 2, 1
-            // positions:  0,  1, 2, 3, 4
+            // values:      1,  2, 3, _, _
+            // wanted:    gip,  3, 2, 1, _
+            // positions:   0,  1, 2, 3, 4
             // 
             // move values first, from position x to y, with
-            //    y = argc - x + 1
+            //    y = argc - x
             // then place pp and ip
             switch (argc)  // must be positive
             {
                 case 0:
-                    push(Value(static_cast<PageAddr_t>(m_pp)));
-                    push(Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_ip)));
+                    push(Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_gip)));
                     break;
 
                 case 1:
-                    m_stack[m_sp + 1] = m_stack[m_sp - 1];
+                    m_stack[m_sp] = m_stack[m_sp - 1];
                     resolveRefInPlace(m_stack[m_sp + 1]);
-                    m_stack[m_sp - 1] = Value(static_cast<PageAddr_t>(m_pp));
-                    m_stack[m_sp + 0] = Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_ip));
-                    m_sp += 2;
+                    m_stack[m_sp - 1] = Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_gip));
+                    m_sp += 1;
                     break;
 
                 default:  // 2 or more elements
                 {
                     const int16_t first = m_sp - argc;
+                    const int16_t stop = (argc % 2 == 0) ? argc / 2 - 1 : (argc - 1) / 2;
                     // move first argument to the very end
-                    m_stack[m_sp + 1] = m_stack[first + 0];
-                    resolveRefInPlace(m_stack[m_sp + 1]);
-                    // move second argument right before the last one
-                    m_stack[m_sp + 0] = m_stack[first + 1];
-                    resolveRefInPlace(m_stack[m_sp + 0]);
+                    m_stack[m_sp] = m_stack[first];
+                    resolveRefInPlace(m_stack[m_sp]);
                     // move the rest, if any
-                    int16_t x = 2;
-                    const int16_t stop  = ((argc % 2 == 0) ? argc : (argc - 1)) / 2;
+                    int16_t x = 1;
                     while (x <= stop)
                     {
                         //        destination          , origin
-                        std::swap(m_stack[m_sp - x + 1], m_stack[first + x]);
-                        resolveRefInPlace(m_stack[m_sp - x + 1]);
+                        std::swap(m_stack[m_sp - x], m_stack[first + x]);
+                        resolveRefInPlace(m_stack[m_sp - x]);
                         resolveRefInPlace(m_stack[first + x]);
                         ++x;
                     }
-                    m_stack[first + 0] = Value(static_cast<PageAddr_t>(m_pp));
-                    m_stack[first + 1] = Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_ip));
-                    m_sp += 2;
+                    m_stack[first] = Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_gip));
+                    m_sp += 1;
                     break;
                 }
             }
@@ -262,7 +256,7 @@ inline void VM::call(int16_t argc_)
                 m_locals.back()->push_back(m_last_sym_loaded, function);
 
             m_pp = new_page_pointer;
-            m_ip = -1;  // because we are doing a m_ip++ right after that
+            m_gip = m_pp * m_state->m_page_size - 1; // because we are doing a m_gip++ right after that
             break;
         }
 
@@ -280,51 +274,45 @@ inline void VM::call(int16_t argc_)
 
             // move values around and invert them
             // 
-            // values:     1,  2, 3, _, _
-            // wanted:    pp, ip, 3, 2, 1
-            // positions:  0,  1, 2, 3, 4
+            // values:      1,  2, 3, _, _
+            // wanted:    gip,  3, 2, 1, _
+            // positions:   0,  1, 2, 3, 4
             // 
             // move values first, from position x to y, with
-            //    y = argc - x + 1
+            //    y = argc - x
             // then place pp and ip
             switch (argc)  // must be positive
             {
                 case 0:
-                    push(Value(static_cast<PageAddr_t>(m_pp)));
-                    push(Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_ip)));
+                    push(Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_gip)));
                     break;
 
                 case 1:
-                    m_stack[m_sp + 1] = m_stack[m_sp - 1];
+                    m_stack[m_sp] = m_stack[m_sp - 1];
                     resolveRefInPlace(m_stack[m_sp + 1]);
-                    m_stack[m_sp - 1] = Value(static_cast<PageAddr_t>(m_pp));
-                    m_stack[m_sp + 0] = Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_ip));
-                    m_sp += 2;
+                    m_stack[m_sp - 1] = Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_gip));
+                    m_sp += 1;
                     break;
 
                 default:  // 2 or more elements
                 {
                     const int16_t first = m_sp - argc;
+                    const int16_t stop = (argc % 2 == 0) ? argc / 2 - 1 : (argc - 1) / 2;
                     // move first argument to the very end
-                    m_stack[m_sp + 1] = m_stack[first + 0];
-                    resolveRefInPlace(m_stack[m_sp + 1]);
-                    // move second argument right before the last one
-                    m_stack[m_sp + 0] = m_stack[first + 1];
-                    resolveRefInPlace(m_stack[m_sp + 0]);
+                    m_stack[m_sp] = m_stack[first];
+                    resolveRefInPlace(m_stack[m_sp]);
                     // move the rest, if any
-                    int16_t x = 2;
-                    const int16_t stop  = ((argc % 2 == 0) ? argc : (argc - 1)) / 2;
+                    int16_t x = 1;
                     while (x <= stop)
                     {
                         //        destination          , origin
-                        std::swap(m_stack[m_sp - x + 1], m_stack[first + x]);
-                        resolveRefInPlace(m_stack[m_sp - x + 1]);
+                        std::swap(m_stack[m_sp - x], m_stack[first + x]);
+                        resolveRefInPlace(m_stack[m_sp - x]);
                         resolveRefInPlace(m_stack[first + x]);
                         ++x;
                     }
-                    m_stack[first + 0] = Value(static_cast<PageAddr_t>(m_pp));
-                    m_stack[first + 1] = Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_ip));
-                    m_sp += 2;
+                    m_stack[first] = Value(ValueType::InstPtr, static_cast<PageAddr_t>(m_gip));
+                    m_sp += 1;
                     break;
                 }
             }
@@ -333,7 +321,7 @@ inline void VM::call(int16_t argc_)
             m_scope_count_to_delete.emplace_back(0);
 
             m_pp = new_page_pointer;
-            m_ip = -1;  // because we are doing a m_ip++ right after that
+            m_gip = m_pp * m_state->m_page_size - 1;  // because we are doing a m_gip++ right after that
             break;
         }
 
@@ -348,7 +336,7 @@ inline void VM::call(int16_t argc_)
                     needed_argc = 0;
 
         // every argument is a MUT declaration in the bytecode
-        while (m_state->m_pages[m_pp][index] == Instruction::MUT)
+        while (m_state->m_instructions[m_pp * m_state->m_page_size + index] == Instruction::MUT)
         {
             needed_argc += 1;
             index += 3;  // jump the argument of MUT (integer on 2 bits, big endian)
@@ -374,7 +362,7 @@ internal::Value VM::resolve(const internal::Value* val, Args&&... args)
     if (!val->isFunction())
         throw Ark::TypeError("Value::resolve couldn't resolve a non-function");
 
-    int ip = m_ip;
+    int gip = m_gip;
     std::size_t pp = m_pp;
 
     // convert and push arguments in reverse order
@@ -387,16 +375,12 @@ internal::Value VM::resolve(const internal::Value* val, Args&&... args)
     std::size_t frames_count = m_fc;
     // call it
     call(static_cast<int16_t>(sizeof...(Args)));
-    // reset instruction pointer, otherwise the safeRun method will start at ip = -1
-    // without doing m_ip++ as intended (done right after the call() in the loop, but here
-    // we start outside this loop)
-    m_ip = 0;
 
     // run until the function returns
     safeRun(/* untilFrameCount */ frames_count);
 
     // restore VM state
-    m_ip = ip;
+    m_gip = gip;
     m_pp = pp;
 
     // get result

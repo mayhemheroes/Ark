@@ -8,10 +8,13 @@
 ### Changed
 - updating doxyfile and some docstrings
 - updating the download script
+- `PageAddr_t` is now a `std::size_t` to fit every possible value from the new global instruction pointer
+- the state doesn't serve `m_pages` anymore but a linear bytecode, aligned on the maximum page size
 
 ### Removed
 - `~UserType`, since we are doing manual memory management now
 - `Frame` were removed because they were giving bad performances
+- VM `ip` (instruction pointer), now using a global instruction pointer
 
 ## 3.0.15
 ### Added

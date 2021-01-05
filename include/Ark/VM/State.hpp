@@ -148,7 +148,8 @@ namespace Ark
         // related to the bytecode
         std::vector<std::string> m_symbols;
         std::vector<internal::Value> m_constants;
-        std::vector<bytecode_t> m_pages;
+        bytecode_t m_instructions;
+        std::size_t m_page_size;
 
         // related to the execution
         std::unordered_map<std::string, internal::Value> m_binded;
