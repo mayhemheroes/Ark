@@ -230,7 +230,8 @@ inline void VM::call(int16_t argc_)
                     const int16_t first = m_sp - argc;
                     const int16_t stop = (argc % 2 == 0) ? argc / 2 - 1 : (argc - 1) / 2;
                     // move first argument to the very end
-                    m_stack[m_sp] = m_stack[first];
+                    m_stack[m_sp].m_constType = m_stack[first].m_constType;
+                    m_stack[m_sp].m_value = std::move(m_stack[first].m_value);
                     resolveRefInPlace(m_stack[m_sp]);
                     // move the rest, if any
                     int16_t x = 1;
@@ -299,7 +300,8 @@ inline void VM::call(int16_t argc_)
                     const int16_t first = m_sp - argc;
                     const int16_t stop = (argc % 2 == 0) ? argc / 2 - 1 : (argc - 1) / 2;
                     // move first argument to the very end
-                    m_stack[m_sp] = m_stack[first];
+                    m_stack[m_sp].m_constType = m_stack[first].m_constType;
+                    m_stack[m_sp].m_value = std::move(m_stack[first].m_value);
                     resolveRefInPlace(m_stack[m_sp]);
                     // move the rest, if any
                     int16_t x = 1;

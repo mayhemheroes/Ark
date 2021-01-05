@@ -475,7 +475,10 @@ namespace Ark
 
                         if (Value* var = findNearestVariable(id); var != nullptr)
                         {
-                            *var = Value();
+                            if (var->valueType() == ValueType::User)
+                                var->usertype_ref().del();
+                            var->m_constType = static_cast<uint8_t>(ValueType::Undefined);
+                            var->m_value = 0.0;
                             break;
                         }
 

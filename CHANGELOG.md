@@ -10,6 +10,8 @@
 - updating the download script
 - `PageAddr_t` is now a `std::size_t` to fit every possible value from the new global instruction pointer
 - the state doesn't serve `m_pages` anymore but a linear bytecode, aligned on the maximum page size
+- fixing `del` instruction to delete more efficiently
+- the scope reserves 4 pairs by default instead of 2, increasing performance by lowering the number of needed reallocations
 
 ### Removed
 - `~UserType`, since we are doing manual memory management now
