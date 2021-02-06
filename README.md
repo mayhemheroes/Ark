@@ -83,6 +83,53 @@ Also it has:
 
 More examples are available in the folder `examples/`.
 
+## Installation
+
+### Through the latest release
+
+*Linux only*
+
+**Important**: this method will add the folder where ArkScript will be downloaded to your path. The executable being named `ark` you can have **conflicts** with another existing program named `ark` as well, [a KDE archiving tool](https://linux.die.net/man/1/ark).
+
+```bash
+mkdir -p "${HOME}/.ark"
+cd "${HOME}/.ark"
+install_dir=`pwd`
+
+current=`curl -s https://github.com/ArkScript-lang/Ark/releases/latest | egrep -o "tag/(?[^\"]+)" | cut -c 5- -`
+url="https://github.com/ArkScript-lang/Ark/releases/download/$current/linux64.zip"
+wget --quiet $url
+
+if [ -f linux64.zip ]; then
+    unzip -o linux64.zip
+    rm linux64.zip
+fi
+
+# export arkscript path to your PATH variable to call it from everywhere
+# export also ARKSCRIPT_PATH for arkscript to find its standard library
+cat >> $HOME/.bashrc<< EOF
+export PATH="$PATH:${install_dir}/"
+export ARKSCRIPT_PATH="${install_dir}"
+EOF
+```
+
+Finally, don't forget to `source $HOME/.bashrc` to refresh your path.
+
+### Through docker
+
+```bash
+$ docker pull arkscript/stable:latest
+```
+
+### Through [werb](https://github.com/wafelack/werb)
+
+*Linux only*
+
+```bash
+$ cargo install werb
+$ werb install arkscript
+```
+
 ## Contributing
 
 * First, [fork](https://github.com/ArkScript-lang/Ark/fork) the repository
@@ -137,7 +184,9 @@ For performance reasons, some functions might be written in C++, in `include/Ark
 
 ![ArkScript code structure](images/arkscript-code-structure.png)
 
-## Dependencies
+## Building
+
+### Dependencies
 
 * C++17
 * CMake >= 3.12
@@ -146,9 +195,9 @@ For performance reasons, some functions might be written in C++, in `include/Ark
     * Install a newer compiler using [Homebrew](https://docs.brew.sh/): `brew install gcc && brew link gcc`
     * Pass compiler path to `cmake` in the build step: `-DCMAKE_CXX_COMPILER=/usr/local/bin/g++-9`
 
-Some libs already included un [thirdparties](https://github.com/ArkScript-lang/thirdparties).
+Some libs already included in [thirdparties](https://github.com/ArkScript-lang/thirdparties).
 
-## Building
+### Through CMake
 
 Different CMake switches are available to customize the build:
 * `-DARK_BUILD_EXE` to generate an executable, defaults to Off, building a shared library only

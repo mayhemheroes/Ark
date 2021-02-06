@@ -4,6 +4,7 @@
 ### Added
 - `UserType::del()`, used only by the virtual machine to free memory
 - a new unique stack based on a `std::array<Value, ARK_STACK_SIZE>`, the default stack size being 8192
+- more profiling tests
 
 ### Changed
 - updating doxyfile and some docstrings
@@ -12,6 +13,7 @@
 - the state doesn't serve `m_pages` anymore but a linear bytecode, aligned on the maximum page size
 - fixing `del` instruction to delete more efficiently
 - the scope reserves 4 pairs by default instead of 2, increasing performance by lowering the number of needed reallocations
+- enhancing examples
 
 ### Removed
 - `~UserType`, since we are doing manual memory management now
