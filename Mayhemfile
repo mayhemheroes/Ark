@@ -1,0 +1,6 @@
+project: rnshah9/ark
+target: ark
+tests: null
+
+cmds:
+  - cmd: /repo/build/arkscript -c @@
