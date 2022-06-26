@@ -49,20 +49,22 @@ namespace Ark
             m_bytecode.push_back(Instruction::CODE_SEGMENT_START);
 
             // push number of elements
-            pushNumber(static_cast<uint16_t>(page.size() + 1));
+            pushNumber(static_cast<uint16_t>(page.size() + 3));
 
             for (auto inst : page)
                 m_bytecode.push_back(inst);
             // just in case we got too far, always add a HALT to be sure the
             // VM won't do anything crazy
             m_bytecode.push_back(Instruction::HALT);
+            pushNumber(0_u16);
         }
 
         if (!m_code_pages.size())
         {
             m_bytecode.push_back(Instruction::CODE_SEGMENT_START);
-            pushNumber(1_u16);
+            pushNumber(3_u16);
             m_bytecode.push_back(Instruction::HALT);
+            pushNumber(0_u16);
         }
 
         constexpr std::size_t header_size = 18;
@@ -340,7 +342,10 @@ namespace Ark
             pushNumber(static_cast<uint16_t>(it_builtin.value()), page_ptr(p));
         }
         else if (auto it_operator = isOperator(name))
+        {
             page(p).emplace_back(static_cast<uint8_t>(Instruction::FIRST_OPERATOR + it_operator.value()));
+            pushNumber(0_u16, page_ptr(p));
+        }
         else  // var-use
         {
             uint16_t i = addSymbol(x);
@@ -350,7 +355,10 @@ namespace Ark
         }
 
         if (produces_result)
+        {
             page(p).push_back(Instruction::POP);
+            pushNumber(0_u16, page_ptr(p));
+        }
     }
 
     void Compiler::compileSpecific(const Node& c0, const Node& x, int p, bool produces_result)
@@ -385,7 +393,10 @@ namespace Ark
         pushSpecificInstArgc(inst, argc, p);
 
         if (produces_result && name != "pop!")  // pop! never pushes a value
+        {
             page(p).push_back(Instruction::POP);
+            pushNumber(0_u16, page_ptr(p));
+        }
     }
 
     void Compiler::compileIf(const Node& x, int p, bool produces_result, bool is_terminal, const std::string& var_name)
@@ -461,9 +472,13 @@ namespace Ark
 
         // return last value on the stack
         page(page_id).emplace_back(Instruction::RET);
+        pushNumber(0_u16, page_ptr(p));
 
         if (produces_result)
+        {
             page(p).push_back(Instruction::POP);
+            pushNumber(0_u16, page_ptr(p));
+        }
     }
 
     void Compiler::compileLetMutSet(Keyword n, const Node& x, int p)
@@ -512,6 +527,7 @@ namespace Ark
         std::size_t page_id = m_code_pages.size() - 1;
         _compile(x.constList()[1], page_id, false, is_terminal, var_name);
         page(page_id).emplace_back(Instruction::RET);  // return to the last frame
+        pushNumber(0_u16, page_ptr(p));
 
         // call it
         uint16_t id = addValue(page_id, x);  // save page_id into the constants table as PageAddr
@@ -519,7 +535,10 @@ namespace Ark
         pushNumber(id, page_ptr(p));
 
         if (produces_result)
+        {
             page(p).push_back(Instruction::POP);
+            pushNumber(0_u16, page_ptr(p));
+        }
     }
 
     void Compiler::compilePluginImport(const Node& x, int p)
@@ -561,11 +580,8 @@ namespace Ark
             else
                 break;
         }
-        std::size_t proc_page_len = m_temp_pages.back().size();
 
-        // we know that operators take only 1 instruction, so if there are more
-        // it's a builtin/function
-        if (proc_page_len > 1)
+        if (m_temp_pages.back()[0] < Instruction::FIRST_OPERATOR)
         {
             if (is_terminal && x.constList()[0].nodeType() == NodeType::Symbol && var_name == x.constList()[0].string())
             {
@@ -629,11 +645,17 @@ namespace Ark
                 // in order to be able to handle things like (op A B C D...)
                 // which should be transformed into A B op C op D op...
                 if (exp_count >= 2)
+                {
                     page(p).push_back(op_inst);
+                    pushNumber(0_u16, page_ptr(p));
+                }
             }
 
             if (exp_count == 1)
+            {
                 page(p).push_back(op_inst);
+                pushNumber(0_u16, page_ptr(p));
+            }
 
             // need to check we didn't push the (op A B C D...) things for operators not supporting it
             if (exp_count > 2)
@@ -661,7 +683,10 @@ namespace Ark
         }
 
         if (produces_result)
+        {
             page(p).push_back(Instruction::POP);
+            pushNumber(0_u16, page_ptr(p));
+        }
     }
 
     void Compiler::putValue(const Node& x, int p, bool produces_result)

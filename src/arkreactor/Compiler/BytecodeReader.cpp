@@ -301,309 +301,121 @@ namespace Ark
 
                     if (displayLine)
                         os << termcolor::cyan << line_number << termcolor::reset << " " << termcolor::yellow;
+
                     uint8_t inst = b[i];
-                    i++;
+                    ++i;
+                    uint16_t arg = readNumber(i);
+                    ++i;
+
+                    if (!displayLine && i - j != size)
+                        continue;
 
                     if (inst == Instruction::NOP)
-                    {
-                        if (displayLine)
-                            os << "NOP\n";
-                    }
+                        os << "NOP\n";
                     else if (inst == Instruction::LOAD_SYMBOL)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "LOAD_SYMBOL " << termcolor::green << symbols[index] << "\n";
-                        i++;
-                    }
+                        os << "LOAD_SYMBOL " << termcolor::green << symbols[arg] << "\n";
                     else if (inst == Instruction::LOAD_CONST)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "LOAD_CONST " << termcolor::magenta << values[index] << "\n";
-                        i++;
-                    }
+                        os << "LOAD_CONST " << termcolor::magenta << values[arg] << "\n";
                     else if (inst == Instruction::POP_JUMP_IF_TRUE)
-                    {
-                        uint16_t value = readNumber(i);
-                        if (displayLine)
-                            os << "POP_JUMP_IF_TRUE " << termcolor::red << "(" << value << ")\n";
-                        i++;
-                    }
+                        os << "POP_JUMP_IF_TRUE " << termcolor::red << "(" << arg << ")\n";
                     else if (inst == Instruction::STORE)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "STORE " << termcolor::green << symbols[index] << "\n";
-                        i++;
-                    }
+                        os << "STORE " << termcolor::green << symbols[arg] << "\n";
                     else if (inst == Instruction::LET)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "LET " << termcolor::green << symbols[index] << "\n";
-                        i++;
-                    }
+                        os << "LET " << termcolor::green << symbols[arg] << "\n";
                     else if (inst == Instruction::POP_JUMP_IF_FALSE)
-                    {
-                        uint16_t value = readNumber(i);
-                        if (displayLine)
-                            os << "POP_JUMP_IF_FALSE " << termcolor::red << "(" << value << ")\n";
-                        i++;
-                    }
+                        os << "POP_JUMP_IF_FALSE " << termcolor::red << "(" << arg << ")\n";
                     else if (inst == Instruction::JUMP)
-                    {
-                        uint16_t value = readNumber(i);
-                        if (displayLine)
-                            os << "JUMP " << termcolor::red << "(" << value << ")\n";
-                        i++;
-                    }
+                        os << "JUMP " << termcolor::red << "(" << arg << ")\n";
                     else if (inst == Instruction::RET)
-                    {
-                        if (displayLine)
-                            os << "RET\n";
-                    }
+                        os << "RET\n";
                     else if (inst == Instruction::HALT)
-                    {
-                        if (displayLine)
-                            os << "HALT\n";
-                    }
+                        os << "HALT\n";
                     else if (inst == Instruction::CALL)
-                    {
-                        uint16_t value = readNumber(i);
-                        if (displayLine)
-                            os << "CALL " << termcolor::reset << "(" << value << ")\n";
-                        i++;
-                    }
+                        os << "CALL " << termcolor::reset << "(" << arg << ")\n";
                     else if (inst == Instruction::CAPTURE)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "CAPTURE " << termcolor::reset << symbols[index] << "\n";
-                        i++;
-                    }
+                        os << "CAPTURE " << termcolor::reset << symbols[arg] << "\n";
                     else if (inst == Instruction::BUILTIN)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "BUILTIN " << termcolor::reset << Builtins::builtins[index].first << "\n";
-                        i++;
-                    }
+                        os << "BUILTIN " << termcolor::reset << Builtins::builtins[arg].first << "\n";
                     else if (inst == Instruction::MUT)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "MUT " << termcolor::green << symbols[index] << "\n";
-                        i++;
-                    }
+                        os << "MUT " << termcolor::green << symbols[arg] << "\n";
                     else if (inst == Instruction::DEL)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "DEL " << termcolor::green << symbols[index] << "\n";
-                        i++;
-                    }
+                        os << "DEL " << termcolor::green << symbols[arg] << "\n";
                     else if (inst == Instruction::SAVE_ENV)
-                    {
-                        if (displayLine)
-                            os << "SAVE_ENV\n";
-                    }
+                        os << "SAVE_ENV\n";
                     else if (inst == Instruction::GET_FIELD)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "GET_FIELD " << termcolor::green << symbols[index] << "\n";
-                        i++;
-                    }
+                        os << "GET_FIELD " << termcolor::green << symbols[arg] << "\n";
                     else if (inst == Instruction::PLUGIN)
-                    {
-                        uint16_t index = readNumber(i);
-                        if (displayLine)
-                            os << "PLUGIN " << termcolor::magenta << values[index] << "\n";
-                        i++;
-                    }
+                        os << "PLUGIN " << termcolor::magenta << values[arg] << "\n";
                     else if (inst == Instruction::LIST)
-                    {
-                        uint16_t value = readNumber(i);
-                        if (displayLine)
-                            os << "LIST " << termcolor::reset << "(" << value << ")\n";
-                        i++;
-                    }
+                        os << "LIST " << termcolor::reset << "(" << arg << ")\n";
                     else if (inst == Instruction::APPEND)
-                    {
-                        uint16_t value = readNumber(i);
-                        if (displayLine)
-                            os << "APPEND " << termcolor::reset << "(" << value << ")\n";
-                        i++;
-                    }
+                        os << "APPEND " << termcolor::reset << "(" << arg << ")\n";
                     else if (inst == Instruction::CONCAT)
-                    {
-                        uint16_t value = readNumber(i);
-                        if (displayLine)
-                            os << "CONCAT " << termcolor::reset << "(" << value << ")\n";
-                        i++;
-                    }
+                        os << "CONCAT " << termcolor::reset << "(" << arg << ")\n";
                     else if (inst == Instruction::APPEND_IN_PLACE)
-                    {
-                        uint16_t value = readNumber(i);
-                        if (displayLine)
-                            os << "APPEND_IN_PLACE " << termcolor::reset << "(" << value << ")\n";
-                        i++;
-                    }
+                        os << "APPEND_IN_PLACE " << termcolor::reset << "(" << arg << ")\n";
                     else if (inst == Instruction::CONCAT_IN_PLACE)
-                    {
-                        uint16_t value = readNumber(i);
-                        if (displayLine)
-                            os << "CONCAT_IN_PLACE " << termcolor::reset << "(" << value << ")\n";
-                        i++;
-                    }
+                        os << "CONCAT_IN_PLACE " << termcolor::reset << "(" << arg << ")\n";
                     else if (inst == Instruction::POP_LIST)
-                    {
-                        if (displayLine)
-                            os << "POP_LIST " << termcolor::reset << "\n";
-                        i++;
-                    }
+                        os << "POP_LIST " << termcolor::reset << "\n";
                     else if (inst == Instruction::POP_LIST_IN_PLACE)
-                    {
-                        if (displayLine)
-                            os << "POP_LIST_IN_PLACE " << termcolor::reset << "\n";
-                        i++;
-                    }
+                        os << "POP_LIST_IN_PLACE " << termcolor::reset << "\n";
                     else if (inst == Instruction::POP)
-                    {
-                        if (displayLine)
-                            os << "POP\n";
-                    }
+                        os << "POP\n";
                     else if (inst == Instruction::ADD)
-                    {
-                        if (displayLine)
-                            os << "ADD\n";
-                    }
+                        os << "ADD\n";
                     else if (inst == Instruction::SUB)
-                    {
-                        if (displayLine)
-                            os << "SUB\n";
-                    }
+                        os << "SUB\n";
                     else if (inst == Instruction::MUL)
-                    {
-                        if (displayLine)
-                            os << "MUL\n";
-                    }
+                        os << "MUL\n";
                     else if (inst == Instruction::DIV)
-                    {
-                        if (displayLine)
-                            os << "DIV\n";
-                    }
+                        os << "DIV\n";
                     else if (inst == Instruction::GT)
-                    {
-                        if (displayLine)
-                            os << "GT\n";
-                    }
+                        os << "GT\n";
                     else if (inst == Instruction::LT)
-                    {
-                        if (displayLine)
-                            os << "LT\n";
-                    }
+                        os << "LT\n";
                     else if (inst == Instruction::LE)
-                    {
-                        if (displayLine)
-                            os << "LE\n";
-                    }
+                        os << "LE\n";
                     else if (inst == Instruction::GE)
-                    {
-                        if (displayLine)
-                            os << "GE\n";
-                    }
+                        os << "GE\n";
                     else if (inst == Instruction::NEQ)
-                    {
-                        if (displayLine)
-                            os << "NEQ\n";
-                    }
+                        os << "NEQ\n";
                     else if (inst == Instruction::EQ)
-                    {
-                        if (displayLine)
-                            os << "EQ\n";
-                    }
+                        os << "EQ\n";
                     else if (inst == Instruction::LEN)
-                    {
-                        if (displayLine)
-                            os << "LEN\n";
-                    }
+                        os << "LEN\n";
                     else if (inst == Instruction::EMPTY)
-                    {
-                        if (displayLine)
-                            os << "EMPTY\n";
-                    }
+                        os << "EMPTY\n";
                     else if (inst == Instruction::TAIL)
-                    {
-                        if (displayLine)
-                            os << "TAIL\n";
-                    }
+                        os << "TAIL\n";
                     else if (inst == Instruction::HEAD)
-                    {
-                        if (displayLine)
-                            os << "HEAD\n";
-                    }
+                        os << "HEAD\n";
                     else if (inst == Instruction::ISNIL)
-                    {
-                        if (displayLine)
-                            os << "ISNIL\n";
-                    }
+                        os << "ISNIL\n";
                     else if (inst == Instruction::ASSERT)
-                    {
-                        if (displayLine)
-                            os << "ASSERT\n";
-                    }
+                        os << "ASSERT\n";
                     else if (inst == Instruction::TO_NUM)
-                    {
-                        if (displayLine)
-                            os << "TO_NUM\n";
-                    }
+                        os << "TO_NUM\n";
                     else if (inst == Instruction::TO_STR)
-                    {
-                        if (displayLine)
-                            os << "TO_STR\n";
-                    }
+                        os << "TO_STR\n";
                     else if (inst == Instruction::AT)
-                    {
-                        if (displayLine)
-                            os << "AT\n";
-                    }
+                        os << "AT\n";
                     else if (inst == Instruction::AND_)
-                    {
-                        if (displayLine)
-                            os << "AND_\n";
-                    }
+                        os << "AND_\n";
                     else if (inst == Instruction::OR_)
-                    {
-                        if (displayLine)
-                            os << "OR_\n";
-                    }
+                        os << "OR_\n";
                     else if (inst == Instruction::MOD)
-                    {
-                        if (displayLine)
-                            os << "MOD\n";
-                    }
+                        os << "MOD\n";
                     else if (inst == Instruction::TYPE)
-                    {
-                        if (displayLine)
-                            os << "TYPE\n";
-                    }
+                        os << "TYPE\n";
                     else if (inst == Instruction::HASFIELD)
-                    {
-                        if (displayLine)
-                            os << "HASFIELD\n";
-                    }
+                        os << "HASFIELD\n";
                     else if (inst == Instruction::NOT)
-                    {
-                        if (displayLine)
-                            os << "NOT\n";
-                    }
+                        os << "NOT\n";
                     else
                     {
-                        if (displayLine)
-                            os << termcolor::reset << "Unknown instruction: " << static_cast<int>(inst) << '\n'
-                               << termcolor::reset;
+                        os << termcolor::reset << "Unknown instruction: " << static_cast<int>(inst) << '\n'
+                           << termcolor::reset;
                         return;
                     }
 
