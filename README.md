@@ -158,6 +158,7 @@ Different CMake switches are available to customize the build:
 * `-DARK_PROFILER_MIPS` to enable the MIPS counting, defaults to Off
 * `-DARK_NO_STDLIB` to avoid the installation of the ArkScript standard library
 * `-DARK_BUILD_MODULES` to trigger the modules build
+* `-DARK_SANITIZERS` to enable ASAN and UBSAN
 
 ```bash
 # first, clone it
@@ -202,7 +203,8 @@ OPTIONS
         -s, --slice                 Select a slice of instructions in the bytecode
         -cs, --code                 Display only the code segments
         -p, --page                  Set the bytecode reader code segment to display
-        -L, --lib                   Set the location of the ArkScript standard library
+        -L, --lib                   Set the location of the ArkScript standard library. Paths can be
+                                    delimited by ';'
 
 LICENSE
         Mozilla Public License 2.0
@@ -231,6 +233,7 @@ Huge thanks to those people for their donations to support the project:
 * [llexto](https://github.com/llexto)
 * COUR Eloïse
 * [AKPINAR Dylan](https://github.com/DylanAkp)
+* [Ryan C. Gordon](https://icculus.org) through his [2022 Microgrant](https://twitter.com/icculus/status/1534552918317318144)
 
 ## Credits
 

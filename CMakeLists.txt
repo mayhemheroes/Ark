@@ -1,14 +1,15 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.9)
 
 project(ark CXX)
 
 # VERSION
 set(ARK_VERSION_MAJOR 3)
-set(ARK_VERSION_MINOR 2)
+set(ARK_VERSION_MINOR 3)
 set(ARK_VERSION_PATCH 0)
 
-# Uses GNU Install directory variables
-include(GNUInstallDirs)
+include(cmake/link_time_optimization.cmake)
+include(cmake/sanitizers.cmake)
+include(GNUInstallDirs)  # Uses GNU Install directory variables
 
 # configure installer.iss
 configure_file(
@@ -35,6 +36,8 @@ set_target_properties(
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF)
+
+enable_lto(ArkReactor)
 
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANG OR APPLE)
     target_compile_options(ArkReactor
@@ -108,6 +111,7 @@ if (UNIX OR LINUX)
     if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANG)
         target_link_libraries(ArkReactor PUBLIC stdc++fs)
     endif()
+
     find_package(Threads)
     target_link_libraries(ArkReactor PRIVATE ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 endif()
@@ -171,6 +175,7 @@ option(ARK_PROFILER_COUNT   "Enable creations/copies/moves counting on the Value
 option(ARK_PROFILER_MIPS    "Enable MIPS calculation" Off)
 option(ARK_NO_STDLIB        "Do not install the standard library with the Ark library" Off)
 option(ARK_BUILD_MODULES    "Build the std library modules or not" Off)
+option(ARK_SANITIZERS       "Enable ASAN and UBSAN" Off)
 
 if (ARK_PROFILER_COUNT)
     target_compile_definitions(ArkReactor PRIVATE -DARK_PROFILER_COUNT)
@@ -233,7 +238,16 @@ if (ARK_BUILD_EXE)
             CXX_STANDARD_REQUIRED ON
             CXX_EXTENSIONS OFF)
 
+    enable_lto(ark)
+    enable_lto(arkscript)
+
     # Installs the arkscript executable.
     install(TARGETS arkscript
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
+
+if (ARK_SANITIZERS)
+    message(STATUS "Enabling address sanitizer and undefined behavior sanitizer")
+    add_address_sanitizer()
+    add_undefined_sanitizer()
 endif()
