@@ -30,7 +30,7 @@ COPY CMakeLists.txt .
 COPY cmake cmake
 COPY --from=submodule-initializor /out .
 RUN cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Release -DARK_BUILD_EXE=On \
-    && cmake --build build --target arkscript -- -j8
+    && cmake --build build --target arkscript
 
 FROM alpine:3.12 AS organizer
 
@@ -49,3 +49,4 @@ RUN apk --no-cache add cmake
 COPY --from=organizer /out/ark .
 RUN cmake --install build --config Release
 
+ENTRYPOINT [ "arkscript" ]
