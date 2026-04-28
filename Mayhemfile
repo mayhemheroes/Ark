@@ -1,0 +1,5 @@
+project: ark
+target: arkscript
+
+cmds:
+  - cmd: /install/bin/arkscript -c @@
