@@ -1,0 +1,11 @@
+project: ark
+target: arkscript
+
+# File-input target, same shape as the fork's historical proven-healthy `arkscript` target
+# (`arkscript -c @@`, runs #46-50) so the accumulated corpus / run history stays attached.
+# `-c` = compile-only (parser -> AST -> IR -> bytecode; no VM execution of untrusted code); with
+# `@@` Mayhem stages the input at a writable scratch path and arkscript writes its bytecode cache
+# NEXT TO the input (never under the read-only /mayhem). `-L /mayhem/lib` only READS the in-image
+# standard library so `(import std.*)` resolves. # mayhem-lint: ok-image-path
+cmds:
+  - cmd: /mayhem/arkscript -L /mayhem/lib -c @@
